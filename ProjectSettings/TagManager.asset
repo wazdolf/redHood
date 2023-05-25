@@ -10,6 +10,7 @@ TagManager:
   - DashButton
   - AttackButton
   - music
+  - spike
   layers:
   - Default
   - TransparentFX
