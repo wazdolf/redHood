@@ -4,11 +4,12 @@ using UnityEngine;
 
 public class StartToken : MonoBehaviour
 {
-    // set the speed of the floating movement
-    public float speed;
-    
-    // set the direction of the floating movement
-    Vector3 direction; 
+    public float movementSpeed = 5f; // Adjust the movement speed as desired
+    public float fleeDistance = 9f; // Distance at which the token flees
+
+    private Vector3 targetPosition;
+    private bool isFleeing = false;
+   
     public GameObject startButton;
     public GameObject square;
     private void OnCollisionEnter2D(Collision2D other) 
@@ -18,29 +19,88 @@ public class StartToken : MonoBehaviour
             Destroy(gameObject);
             startButton.SetActive(true);
             square.SetActive(true);
-
         }
     }
 
     void Start () 
     {
-        
-        // set initial direction of the floating movement
-        direction = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0f);
+        SetRandomTargetPosition();
         startButton.SetActive(false);
         square.SetActive(false);
     }
 
     void Update () 
     {
-        speed = Random.Range(0,0.07f);
-      // move the token in the set direction
-        transform.position += direction * speed; 
-        
-        // if the token has reached the edge of the screen, change the direction of the floating movement
-        if (transform.position.x < -8.5f || transform.position.x > 8.5f || transform.position.y < -4.6 || transform.position.y > 4.6)
+        Check();
+        if (!isFleeing)
         {
-            direction = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0f);
+            MoveTowardsTarget();
+        }
+        else
+        {
+            FleeFromPlayer();
+        }
+    }
+    void MoveTowardsTarget()
+    {
+        transform.position = Vector3.MoveTowards(transform.position, targetPosition, movementSpeed * Time.deltaTime);
+
+        if (Vector3.Distance(transform.position, targetPosition) < 0.1f)
+        {
+            SetRandomTargetPosition();
+        }
+    }
+
+    void FleeFromPlayer()
+    {
+         // Generate a new random position to flee to
+        Vector3 fleePosition = GetRandomFleePosition();
+
+        // Move the token towards the flee position
+        transform.position = Vector3.MoveTowards(transform.position, fleePosition, movementSpeed * Time.deltaTime);
+
+        // Check if the token has reached the flee position
+        if (Vector3.Distance(transform.position, fleePosition) < 0.1f)
+        {
+        // Reset the target position and stop fleeing
+        SetRandomTargetPosition();
+        isFleeing = false;
+        }
+    }
+    void SetRandomTargetPosition()
+    {
+        float randomX = Random.Range(-7f, 7f); // Adjust the range as per your screen size
+        float randomY = Random.Range(-5f, 5f); // Adjust the range as per your screen size
+
+        targetPosition = new Vector3(randomX, randomY, 0f);
+    }
+    Vector3 GetRandomFleePosition()
+    {
+        // Generate a new random position away from the player
+        Vector3 playerPosition = GameObject.FindGameObjectWithTag("Player").transform.position;
+        Vector3 direction = (transform.position - playerPosition).normalized;
+        Vector3 fleePosition = transform.position + direction * fleeDistance;
+
+        // Clamp the flee position within the screen boundaries
+        // float halfScreenWidth = Screen.width / 2;
+        // float halfScreenHeight = Screen.height / 2;
+        // fleePosition.x = Mathf.Clamp(fleePosition.x, -halfScreenWidth, halfScreenWidth);
+        // fleePosition.y = Mathf.Clamp(fleePosition.y, -halfScreenHeight, halfScreenHeight);
+
+        return fleePosition;
+    }
+    private void Check()
+    {
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        float distance = Vector3.Distance(transform.position, player.transform.position);
+
+        if (distance < fleeDistance)
+        {
+        isFleeing = true;
+        }
+        else 
+        {
+            isFleeing = false;
         }
     }
    

@@ -6198,7 +6198,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b44b8027bd55a0b4fa5fef835a079f3d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 0.05
+  movementSpeed: 5
+  fleeDistance: 2
   startButton: {fileID: 504518646}
   square: {fileID: 2062651783}
 --- !u!1001 &1091721682
