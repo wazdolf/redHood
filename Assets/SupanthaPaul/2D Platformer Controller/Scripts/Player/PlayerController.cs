@@ -62,9 +62,12 @@ namespace SupanthaPaul
 		private bool m_canAttack = false;
 		private int m_onWallSide = 0;
 		private int m_playerSide = 1;
+		private float climbStaminaMax = 0.5f;
+		private float climbStamina;
 
 		void Start()
 		{
+			climbStamina = climbStaminaMax;
 			// create pools for particles
 			PoolManager.instance.CreatePool(dashEffect, 2);
 			PoolManager.instance.CreatePool(jumpEffect, 2);
@@ -172,6 +175,8 @@ namespace SupanthaPaul
 
 		private void Update()
 		{
+			Debug.Log(climbStamina);
+			
 			// horizontal input
 			moveInput = InputSystem.HorizontalRaw();
 
@@ -238,20 +243,43 @@ namespace SupanthaPaul
 			{
 				m_wallGrabbing = false;
 				m_wallJumping = true;
-				Debug.Log("Wall jumped");
+				// Debug.Log("Wall jumped");
 				if (m_playerSide == m_onWallSide)
 					Flip();
 				m_rb.AddForce(new Vector2(-m_onWallSide * wallJumpForce.x, wallJumpForce.y), ForceMode2D.Impulse);
 			}
 			else if(InputSystem.Jump() && m_wallGrabbing && moveInput != 0 && (moveInput == m_onWallSide) && m_canJump)      // wall climbing jump
 			{
-				m_wallGrabbing = false;
-				m_wallJumping = true;
-				Debug.Log("Wall climbed");
+				if(climbStamina > 0f)
+				{
+					m_wallGrabbing = false;
+					m_wallJumping = true;
+				    // Debug.Log("Wall climbed");
 				if (m_playerSide == m_onWallSide)
 					Flip();
 				m_rb.AddForce(new Vector2(-m_onWallSide * wallClimbForce.x, wallClimbForce.y), ForceMode2D.Impulse);
+				}
+				else
+				{
+					m_wallGrabbing = true;
+					m_wallJumping = false;
+				}
+				
 			}
+			 if (isGrounded && !m_onLeftWall && !m_onRightWall && !m_wallGrabbing)
+    		{		
+        		climbStamina = climbStaminaMax;
+    		}
+			if (m_wallGrabbing)
+    		{
+        		climbStamina -= Time.deltaTime;
+        		if (climbStamina <= 0f)
+        		{
+            		m_wallGrabbing = false;
+            		// Debug.Log("Out of stamina, releasing wall");
+        		}
+    		}
+
 			
 
 		}
