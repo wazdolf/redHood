@@ -11,6 +11,7 @@ TagManager:
   - AttackButton
   - music
   - spike
+  - token
   layers:
   - Default
   - TransparentFX

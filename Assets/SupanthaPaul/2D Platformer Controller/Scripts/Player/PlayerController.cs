@@ -62,7 +62,7 @@ namespace SupanthaPaul
 		private bool m_canAttack = false;
 		private int m_onWallSide = 0;
 		private int m_playerSide = 1;
-		private float climbStaminaMax = 0.5f;
+		private float climbStaminaMax = 1f;
 		private float climbStamina;
 
 		void Start()
@@ -175,7 +175,8 @@ namespace SupanthaPaul
 
 		private void Update()
 		{
-			Debug.Log(climbStamina);
+
+			// Debug.Log(climbStamina);
 			
 			// horizontal input
 			moveInput = InputSystem.HorizontalRaw();
