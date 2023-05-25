@@ -11,11 +11,8 @@ TagManager:
   - AttackButton
   - music
   - spike
-<<<<<<< HEAD
   - token
   - enemy
-=======
->>>>>>> parent of 8bf2462 (death logic and tokens)
   layers:
   - Default
   - TransparentFX
