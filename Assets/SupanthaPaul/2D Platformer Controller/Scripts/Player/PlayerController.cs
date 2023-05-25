@@ -26,9 +26,18 @@ namespace SupanthaPaul
 		[HideInInspector] public float moveInput;
 		[HideInInspector] public bool canMove = true;
 		[HideInInspector] public bool isDashing = false;
+		[HideInInspector] public bool actuallyWallGrabbing = false;
 		[HideInInspector] public bool isAttacking = false;
 		// controls whether this instance is currently playable or not
 		[HideInInspector] public bool isCurrentlyPlayable = false;
+		[Header("Wall grab & jump")]
+		[Tooltip("Right offset of the wall detection sphere")]
+		public Vector2 grabRightOffset = new Vector2(0.16f, 0f);
+		public Vector2 grabLeftOffset = new Vector2(-0.16f, 0f);
+		public float grabCheckRadius = 0.24f;
+		public float slideSpeed = 2.5f;
+		public Vector2 wallJumpForce = new Vector2(10.5f, 18f);
+		public Vector2 wallClimbForce = new Vector2(4f, 14f);
 
 		private Rigidbody2D m_rb;
 		private ParticleSystem m_dustParticle;
@@ -40,10 +49,19 @@ namespace SupanthaPaul
 		private float m_dashTime;
 		private bool m_hasDashedInAir = false;
 		private float m_dashCooldown;
+		private bool m_onWall = false;
+		private bool m_onRightWall = false;
+		private bool m_onLeftWall = false;
+		private bool m_wallGrabbing = false;
+		private readonly float m_wallStickTime = 0.25f;
+		private float m_wallStick = 0f;
+		private bool m_wallJumping = false;
 		private bool m_canMoveLeft = false;
         private bool m_canJump = false;
         private bool m_canDash = false;
 		private bool m_canAttack = false;
+		private int m_onWallSide = 0;
+		private int m_playerSide = 1;
 
 		void Start()
 		{
@@ -69,11 +87,23 @@ namespace SupanthaPaul
 			// check if grounded
 			isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, whatIsGround);
 			var position = transform.position;
+			// check if on wall
+			m_onWall = Physics2D.OverlapCircle((Vector2)position + grabRightOffset, grabCheckRadius, whatIsGround)
+			          || Physics2D.OverlapCircle((Vector2)position + grabLeftOffset, grabCheckRadius, whatIsGround);
+			m_onRightWall = Physics2D.OverlapCircle((Vector2)position + grabRightOffset, grabCheckRadius, whatIsGround);
+			m_onLeftWall = Physics2D.OverlapCircle((Vector2)position + grabLeftOffset, grabCheckRadius, whatIsGround);
+			
+			// calculate player and wall sides as integers
+			CalculateSides();
 			// if this instance is currently playable
 			if (isCurrentlyPlayable)
 			{
 				// horizontal movement
-					if(canMove && m_canMoveLeft)
+				if(m_wallJumping)
+				{
+					m_rb.velocity = Vector2.Lerp(m_rb.velocity, (new Vector2(moveInput * speed, m_rb.velocity.y)), 1.5f * Time.fixedDeltaTime);
+				}
+					if(canMove && m_canMoveLeft && !m_wallGrabbing)
 						m_rb.velocity = new Vector2(moveInput * speed, m_rb.velocity.y);
 					else if(!canMove && !m_canMoveLeft)
 						m_rb.velocity = new Vector2(0f, m_rb.velocity.y);
@@ -109,6 +139,22 @@ namespace SupanthaPaul
 							m_rb.velocity = Vector2.left * dashSpeed;
 					}
 				}
+				// wall grab
+				if(m_onWall && !isGrounded && m_rb.velocity.y <= 0f && m_playerSide == m_onWallSide)
+				{
+					actuallyWallGrabbing = true;    // for animation
+					m_wallGrabbing = true;
+					m_rb.velocity = new Vector2(moveInput * speed, -slideSpeed);
+					m_wallStick = m_wallStickTime;
+				} else
+				{
+					m_wallStick -= Time.deltaTime;
+					actuallyWallGrabbing = false;
+					if (m_wallStick <= 0f)
+						m_wallGrabbing = false;
+				}
+				if (m_wallGrabbing && isGrounded)
+					m_wallGrabbing = false;
 
 				// enable/disable dust particles
 				float playerVelocityMag = m_rb.velocity.sqrMagnitude;
@@ -175,7 +221,7 @@ namespace SupanthaPaul
 				m_hasDashedInAir = false;
 			
 			// Jumping
-			if(InputSystem.Jump() && m_extraJumps > 0 && !isGrounded && m_canJump)	// extra jumping
+			if(InputSystem.Jump() && m_extraJumps > 0 && !isGrounded && !m_wallGrabbing && m_canJump)	// extra jumping
 			{
 				m_rb.velocity = new Vector2(m_rb.velocity.x, m_extraJumpForce); ;
 				m_extraJumps--;
@@ -188,6 +234,24 @@ namespace SupanthaPaul
 				// jumpEffect
 				PoolManager.instance.ReuseObject(jumpEffect, groundCheck.position, Quaternion.identity);
 			}
+			else if(InputSystem.Jump() && m_wallGrabbing && moveInput!=m_onWallSide && m_canJump)		// wall jumping off the wall
+			{
+				m_wallGrabbing = false;
+				m_wallJumping = true;
+				Debug.Log("Wall jumped");
+				if (m_playerSide == m_onWallSide)
+					Flip();
+				m_rb.AddForce(new Vector2(-m_onWallSide * wallJumpForce.x, wallJumpForce.y), ForceMode2D.Impulse);
+			}
+			else if(InputSystem.Jump() && m_wallGrabbing && moveInput != 0 && (moveInput == m_onWallSide) && m_canJump)      // wall climbing jump
+			{
+				m_wallGrabbing = false;
+				m_wallJumping = true;
+				Debug.Log("Wall climbed");
+				if (m_playerSide == m_onWallSide)
+					Flip();
+				m_rb.AddForce(new Vector2(-m_onWallSide * wallClimbForce.x, wallClimbForce.y), ForceMode2D.Impulse);
+			}
 			
 
 		}
@@ -198,6 +262,28 @@ namespace SupanthaPaul
 			Vector3 scale = transform.localScale;
 			scale.x *= -1;
 			transform.localScale = scale;
+		}
+		void CalculateSides()
+		{
+			if (m_onRightWall)
+				m_onWallSide = 1;
+			else if (m_onLeftWall)
+				m_onWallSide = -1;
+			else
+				m_onWallSide = 0;
+
+			if (m_facingRight)
+				m_playerSide = 1;
+			else
+				m_playerSide = -1;
+		}
+
+		private void OnDrawGizmosSelected()
+		{
+			Gizmos.color = Color.red;
+			Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+			Gizmos.DrawWireSphere((Vector2)transform.position + grabRightOffset, grabCheckRadius);
+			Gizmos.DrawWireSphere((Vector2)transform.position + grabLeftOffset, grabCheckRadius);
 		}
 		private void OnCollisionEnter2D(Collision2D other)
 		{
@@ -218,25 +304,6 @@ namespace SupanthaPaul
 				m_canAttack = true;
 			}
 		}
-		// private void OnTriggerEnter2D(Collider2D other) 
-		// {
-		// 	if(other.gameObject.CompareTag("LeftButton"))
-		// 	{
-		// 		m_canMoveLeft = true;
-		// 	}
-		// 	if(other.gameObject.CompareTag("JumpButton"))
-		// 	{
-		// 		m_canJump = true;
-		// 	}
-		// 	if(other.gameObject.CompareTag("DashButton"))
-		// 	{
-		// 		m_canDash = true;
-		// 	}
-		// 	if(other.gameObject.CompareTag("AttackButton"))
-		// 	{
-		// 		m_canAttack = true;
-		// 	}
-		// }
 
 	}
 }
