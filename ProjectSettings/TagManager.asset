@@ -9,6 +9,7 @@ TagManager:
   - JumpButton
   - DashButton
   - AttackButton
+  - music
   layers:
   - Default
   - TransparentFX
