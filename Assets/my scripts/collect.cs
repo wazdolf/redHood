@@ -23,7 +23,7 @@ public class collect : MonoBehaviour
         {
             Invoke("LoadNext", 2f);
         }
-        countText.text = count.ToString() + "-" + maxCount.ToString();
+        countText.text = count.ToString() + "/" + maxCount.ToString();
     }
     private void OnCollisionEnter2D(Collision2D other) 
     {
