@@ -12,6 +12,8 @@ TagManager:
   - music
   - spike
   - token
+  - enemy
+  - MusicButton
   layers:
   - Default
   - TransparentFX

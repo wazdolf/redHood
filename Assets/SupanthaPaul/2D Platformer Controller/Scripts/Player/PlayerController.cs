@@ -4,6 +4,8 @@ namespace SupanthaPaul
 {
 	public class PlayerController : MonoBehaviour
 	{
+        public AudioSource audio;
+
 		[SerializeField] private float speed;
 		[Header("Jumping")]
 		[SerializeField] private float jumpForce;
@@ -64,6 +66,7 @@ namespace SupanthaPaul
 		private int m_playerSide = 1;
 		private float climbStaminaMax = 1f;
 		private float climbStamina;
+        private bool canMusic = false;
 
 		void Start()
 		{
@@ -281,7 +284,14 @@ namespace SupanthaPaul
         		}
     		}
 
-			
+			if(canMusic==true)
+			{
+				if(audio.isPlaying == false)
+                 audio.Play();
+                 else
+                 audio.Pause();
+			}
+			else audio.Stop();
 
 		}
 
@@ -331,6 +341,10 @@ namespace SupanthaPaul
 			if(other.gameObject.CompareTag("AttackButton"))
 			{
 				m_canAttack = true;
+			}
+			if(other.gameObject.CompareTag("MusicButton"))
+			{
+				canMusic = true;
 			}
 		}
 
