@@ -77904,6 +77904,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76bf9e7eb19d41f489cc8aec091ced57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxCount: 6
+  maxCount: 1
   anim: {fileID: 5561457809743636622}
   countText: {fileID: 251277233}
